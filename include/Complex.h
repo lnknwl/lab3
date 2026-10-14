@@ -11,6 +11,14 @@ private:
     double imaginaryPart;
     static int objectCount;
 
+    /**
+     * @brief Изменяет действительную часть, проверяя результат
+     *
+     * @param change Изменение действительной части
+     * @throws std::overflow_error Если результат нельзя сохранить
+     */
+    void changeRealPart(double change);
+
 public:
     /**
      * @brief Создает комплексное число с нулевыми частями
@@ -45,6 +53,40 @@ public:
      * @brief Завершает время жизни числа и уменьшает счетчик
      */
     ~Complex();
+
+    /**
+     * @brief Увеличивает действительную часть на один
+     *
+     * @return Ссылка на измененное число
+     * @throws std::overflow_error Если результат нельзя сохранить
+     */
+    Complex& operator++();
+
+    /**
+     * @brief Увеличивает действительную часть и возвращает старое число
+     *
+     * @param unused Признак постфиксной формы, значение не используется
+     * @return Копия числа до увеличения
+     * @throws std::overflow_error Если результат нельзя сохранить
+     */
+    Complex operator++(int unused);
+
+    /**
+     * @brief Уменьшает действительную часть на один
+     *
+     * @return Ссылка на измененное число
+     * @throws std::overflow_error Если результат нельзя сохранить
+     */
+    Complex& operator--();
+
+    /**
+     * @brief Уменьшает действительную часть и возвращает старое число
+     *
+     * @param unused Признак постфиксной формы, значение не используется
+     * @return Копия числа до уменьшения
+     * @throws std::overflow_error Если результат нельзя сохранить
+     */
+    Complex operator--(int unused);
 
     /**
      * @brief Возвращает действительную часть

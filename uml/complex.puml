@@ -11,6 +11,11 @@ class Complex {
     + Complex(other : const Complex&)
     + operator=(other : const Complex&) : Complex&
     + ~Complex()
+    - changeRealPart(change : double) : void
+    + operator++() : Complex&
+    + operator++(unused : int) : Complex
+    + operator--() : Complex&
+    + operator--(unused : int) : Complex
     + getRealPart() const : double
     + getImaginaryPart() const : double
     + getModulus() const : double

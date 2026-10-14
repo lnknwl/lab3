@@ -47,7 +47,130 @@ bool rejectsNumber(double realPart, double imaginaryPart)
 }
 
 /**
- * @brief Проверяет конструкторы и время жизни комплексных чисел
+ * @brief Проверяет отказ унарной операции без изменения числа
+ *
+ * @param number Изменяемое число
+ * @param operation Номер операции: 0 — ++a, 1 — a++, 2 — --a, 3 — a--
+ * @return true если операция отклонена и состояние сохранено
+ */
+bool rejectsStep(Complex& number, int operation)
+{
+    double oldReal = number.getRealPart();
+    double oldImaginary = number.getImaginaryPart();
+    int count = Complex::getObjectCount();
+
+    try
+    {
+        switch (operation)
+        {
+            case 0: ++number; break;
+            case 1: number++; break;
+            case 2: --number; break;
+            case 3: number--; break;
+            default: return false;
+        }
+    }
+    catch (const std::overflow_error&)
+    {
+        return number.getRealPart() == oldReal &&
+               number.getImaginaryPart() == oldImaginary &&
+               Complex::getObjectCount() == count;
+    }
+
+    return false;
+}
+
+/**
+ * @brief Проверяет унарные операции комплексного числа
+ *
+ * @param errors Количество ошибок
+ */
+void testUnaryOperations(int& errors)
+{
+    std::cout << "\nУнарные операции:\n";
+    int initialCount = Complex::getObjectCount();
+
+    {
+        Complex number(3.0, 4.0);
+        Complex& afterIncrement = ++number;
+        check(&afterIncrement == &number && number.getRealPart() == 4.0 &&
+              number.getImaginaryPart() == 4.0,
+              "Префикс ++ изменил число и вернул ссылку на него", errors);
+        check(Complex::getObjectCount() == initialCount + 1,
+              "Префикс ++ не создал копию", errors);
+
+        Complex beforeIncrement = number++;
+        check(beforeIncrement.getRealPart() == 4.0 && beforeIncrement.getImaginaryPart() == 4.0 &&
+              number.getRealPart() == 5.0 && number.getImaginaryPart() == 4.0,
+              "Постфикс ++ вернул старое значение и увеличил число", errors);
+        check(Complex::getObjectCount() == initialCount + 2,
+              "Сохраненный результат постфикса считается отдельным объектом", errors);
+        ++beforeIncrement;
+        ++beforeIncrement;
+        check(number.getRealPart() == 5.0 && beforeIncrement.getRealPart() == 6.0,
+              "Изменение возвращенной копии не изменило исходное число", errors);
+
+        Complex& afterDecrement = --number;
+        check(&afterDecrement == &number && number.getRealPart() == 4.0 &&
+              number.getImaginaryPart() == 4.0,
+              "Префикс -- изменил число и вернул ссылку на него", errors);
+
+        Complex beforeDecrement = number--;
+        check(beforeDecrement.getRealPart() == 4.0 && beforeDecrement.getImaginaryPart() == 4.0 &&
+              number.getRealPart() == 3.0 && number.getImaginaryPart() == 4.0,
+              "Постфикс -- вернул старое значение и уменьшил число", errors);
+        check(Complex::getObjectCount() == initialCount + 3,
+              "Временные копии постфиксных операций уничтожены", errors);
+
+        std::cout << "После ++a, a++, --a, a--: ";
+        number.printInfo();
+        ++(++number);
+        check(number.getRealPart() == 5.0 && number.getImaginaryPart() == 4.0,
+              "Префиксные операции можно выполнять последовательно", errors);
+        --(--number);
+        check(number.getRealPart() == 3.0 && number.getImaginaryPart() == 4.0,
+              "Два уменьшения вернули исходное значение", errors);
+
+        int beforeDiscardedResult = Complex::getObjectCount();
+        number++;
+        number--;
+        check(Complex::getObjectCount() == beforeDiscardedResult && number.getRealPart() == 3.0,
+              "Несохраненные результаты постфикса уничтожены", errors);
+    }
+
+    check(Complex::getObjectCount() == initialCount,
+          "После унарных операций счетчик вернулся к исходному значению", errors);
+
+    {
+        Complex number(-1.0, -2.0);
+        ++number;
+        check(number.getRealPart() == 0.0 && number.getImaginaryPart() == -2.0,
+              "Инкремент переводит действительную часть через ноль", errors);
+        --number;
+        check(number.getRealPart() == -1.0 && number.getImaginaryPart() == -2.0,
+              "Декремент работает с отрицательными частями", errors);
+    }
+
+    std::cout << "\nНепредставимые изменения:\n";
+    {
+        Complex large(std::numeric_limits<double>::max(), 0.0);
+        Complex negativeLarge(-std::numeric_limits<double>::max(), 0.0);
+
+        for (int operation = 0; operation < 4; ++operation)
+        {
+            check(rejectsStep(large, operation),
+                  "Операция с большим числом отклонена, данные и счетчик сохранены", errors);
+            check(rejectsStep(negativeLarge, operation),
+                  "Операция с большим отрицательным числом отклонена", errors);
+        }
+    }
+
+    check(Complex::getObjectCount() == initialCount,
+          "Ошибки унарных операций не оставили лишних объектов", errors);
+}
+
+/**
+ * @brief Проверяет конструкторы, унарные операции и время жизни чисел
  *
  * @return 0 если все проверки прошли, иначе 1
  */
@@ -119,6 +242,7 @@ int main()
         }
     }
 
+    testUnaryOperations(errors);
     check(Complex::getObjectCount() == 0, "Деструкторы уменьшили счетчик до 0", errors);
     std::cout << "\nКоличество ошибок: " << errors << '\n';
     std::cout << (errors == 0 ? "Все проверки выполнены\n" : "Есть ошибки проверки\n");

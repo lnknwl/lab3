@@ -48,6 +48,60 @@ Complex::~Complex()
 }
 
 /**
+ * @brief Изменяет действительную часть, проверяя результат
+ */
+void Complex::changeRealPart(double change)
+{
+    double newRealPart = realPart + change;
+
+    if (!std::isfinite(newRealPart) || newRealPart == realPart ||
+        !std::isfinite(std::hypot(newRealPart, imaginaryPart)))
+    {
+        throw std::overflow_error("Изменение действительной части нельзя сохранить");
+    }
+
+    realPart = newRealPart;
+}
+
+/**
+ * @brief Увеличивает действительную часть на один
+ */
+Complex& Complex::operator++()
+{
+    changeRealPart(1.0);
+    return *this;
+}
+
+/**
+ * @brief Увеличивает действительную часть и возвращает старое число
+ */
+Complex Complex::operator++(int)
+{
+    Complex oldValue(*this);
+    ++(*this);
+    return oldValue;
+}
+
+/**
+ * @brief Уменьшает действительную часть на один
+ */
+Complex& Complex::operator--()
+{
+    changeRealPart(-1.0);
+    return *this;
+}
+
+/**
+ * @brief Уменьшает действительную часть и возвращает старое число
+ */
+Complex Complex::operator--(int)
+{
+    Complex oldValue(*this);
+    --(*this);
+    return oldValue;
+}
+
+/**
  * @brief Возвращает действительную часть
  *
  * @return Действительная часть числа
