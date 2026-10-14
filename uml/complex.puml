@@ -1,0 +1,21 @@
+@startuml
+title Лабораторная работа №3. Вариант 4 — Комплексное число
+skinparam classAttributeIconSize 0
+
+class Complex {
+    - realPart : double
+    - imaginaryPart : double
+    - {static} objectCount : int
+    + Complex()
+    + Complex(realPart : double, imaginaryPart : double)
+    + Complex(other : const Complex&)
+    + operator=(other : const Complex&) : Complex&
+    + ~Complex()
+    + getRealPart() const : double
+    + getImaginaryPart() const : double
+    + getModulus() const : double
+    + {static} getObjectCount() : int
+    + printInfo() const : void
+}
+
+@enduml
