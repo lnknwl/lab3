@@ -1,5 +1,6 @@
 #include <cmath>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include "Complex.h"
 
@@ -99,6 +100,87 @@ Complex Complex::operator--(int)
     Complex oldValue(*this);
     --(*this);
     return oldValue;
+}
+
+/**
+ * @brief Проверяет и сохраняет результат арифметической операции
+ */
+void Complex::assignResult(long double newRealPart, long double newImaginaryPart)
+{
+    long double maximum = std::numeric_limits<double>::max();
+
+    if (!std::isfinite(newRealPart) || !std::isfinite(newImaginaryPart) ||
+        std::abs(newRealPart) > maximum || std::abs(newImaginaryPart) > maximum ||
+        std::hypot(newRealPart, newImaginaryPart) > maximum)
+    {
+        throw std::overflow_error("Результат операции не помещается в double");
+    }
+
+    double resultReal = static_cast<double>(newRealPart);
+    double resultImaginary = static_cast<double>(newImaginaryPart);
+
+    if (!std::isfinite(std::hypot(resultReal, resultImaginary)))
+    {
+        throw std::overflow_error("Модуль результата не помещается в double");
+    }
+
+    realPart = resultReal;
+    imaginaryPart = resultImaginary;
+}
+
+/**
+ * @brief Прибавляет другое комплексное число
+ */
+Complex& Complex::operator+=(const Complex& other)
+{
+    assignResult(static_cast<long double>(realPart) + other.realPart,
+                 static_cast<long double>(imaginaryPart) + other.imaginaryPart);
+    return *this;
+}
+
+/**
+ * @brief Вычитает другое комплексное число
+ */
+Complex& Complex::operator-=(const Complex& other)
+{
+    assignResult(static_cast<long double>(realPart) - other.realPart,
+                 static_cast<long double>(imaginaryPart) - other.imaginaryPart);
+    return *this;
+}
+
+/**
+ * @brief Умножает число на другое комплексное число
+ */
+Complex& Complex::operator*=(const Complex& other)
+{
+    long double a = realPart;
+    long double b = imaginaryPart;
+    long double c = other.realPart;
+    long double d = other.imaginaryPart;
+
+    assignResult(a * c - b * d, a * d + b * c);
+    return *this;
+}
+
+/**
+ * @brief Делит число на другое комплексное число
+ */
+Complex& Complex::operator/=(const Complex& other)
+{
+    if (other.realPart == 0.0 && other.imaginaryPart == 0.0)
+    {
+        throw std::domain_error("Деление на нулевое комплексное число");
+    }
+
+    long double a = realPart;
+    long double b = imaginaryPart;
+    long double c = other.realPart;
+    long double d = other.imaginaryPart;
+    long double denominator = c * c + d * d;
+
+    assignResult((a * c + b * d) / denominator,
+                 (b * c - a * d) / denominator);
+    return *this;
 }
 
 /**

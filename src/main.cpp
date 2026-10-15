@@ -170,7 +170,150 @@ void testUnaryOperations(int& errors)
 }
 
 /**
- * @brief Проверяет конструкторы, унарные операции и время жизни чисел
+ * @brief Проверяет результат с учетом погрешности вычислений
+ *
+ * @param number Проверяемое число
+ * @param realPart Ожидаемая действительная часть
+ * @param imaginaryPart Ожидаемая мнимая часть
+ * @return true если части совпадают с заданной точностью
+ */
+bool hasParts(const Complex& number, double realPart, double imaginaryPart)
+{
+    return std::abs(number.getRealPart() - realPart) < 0.000001 &&
+           std::abs(number.getImaginaryPart() - imaginaryPart) < 0.000001;
+}
+
+/**
+ * @brief Проверяет сохранение состояния при ошибке арифметики
+ *
+ * @param number Изменяемое число
+ * @param other Второй операнд
+ * @param operation Номер операции: 0 — +=, 1 — -=, 2 — *=, 3 — /=
+ * @param divisionByZero Ожидается ли ошибка деления на ноль
+ * @return true если получена нужная ошибка и данные сохранены
+ */
+bool rejectsArithmetic(Complex& number, const Complex& other,
+                       int operation, bool divisionByZero = false)
+{
+    double oldReal = number.getRealPart();
+    double oldImaginary = number.getImaginaryPart();
+    double otherReal = other.getRealPart();
+    double otherImaginary = other.getImaginaryPart();
+    int count = Complex::getObjectCount();
+    bool rejected = false;
+
+    try
+    {
+        switch (operation)
+        {
+            case 0: number += other; break;
+            case 1: number -= other; break;
+            case 2: number *= other; break;
+            case 3: number /= other; break;
+            default: return false;
+        }
+    }
+    catch (const std::domain_error&)
+    {
+        rejected = divisionByZero;
+    }
+    catch (const std::overflow_error&)
+    {
+        rejected = !divisionByZero;
+    }
+
+    return rejected && number.getRealPart() == oldReal &&
+           number.getImaginaryPart() == oldImaginary &&
+           other.getRealPart() == otherReal && other.getImaginaryPart() == otherImaginary &&
+           Complex::getObjectCount() == count;
+}
+
+/**
+ * @brief Проверяет арифметические присваивания
+ *
+ * @param errors Количество ошибок
+ */
+void testArithmeticAssignment(int& errors)
+{
+    std::cout << "\nАрифметические присваивания:\n";
+    int initialCount = Complex::getObjectCount();
+
+    {
+        Complex number(3.0, 4.0);
+        const Complex other(1.0, -2.0);
+        int count = Complex::getObjectCount();
+
+        check(&(number += other) == &number && hasParts(number, 4.0, 2.0),
+              "+= сложило части и вернуло ссылку на число", errors);
+        check(&(number -= other) == &number && hasParts(number, 3.0, 4.0),
+              "-= вычло части и вернуло ссылку на число", errors);
+        check(&(number *= other) == &number && hasParts(number, 11.0, -2.0),
+              "*= выполнило комплексное умножение", errors);
+        check(&(number /= other) == &number && hasParts(number, 3.0, 4.0),
+              "/= выполнило комплексное деление", errors);
+        check(hasParts(other, 1.0, -2.0), "Правый операнд не изменился", errors);
+        check(Complex::getObjectCount() == count,
+              "Арифметические присваивания не создали новых объектов", errors);
+        std::cout << "После +=, -=, *=, /=: ";
+        number.printInfo();
+
+        number += number;
+        check(hasParts(number, 6.0, 8.0), "Число можно прибавить к самому себе", errors);
+        number -= number;
+        check(hasParts(number, 0.0, 0.0), "Вычитание самого себя дает ноль", errors);
+        number = other;
+        number *= number;
+        check(hasParts(number, -3.0, -4.0), "Умножение самого на себя учитывает старые части", errors);
+        number /= number;
+        check(hasParts(number, 1.0, 0.0), "Ненулевое число делится само на себя", errors);
+
+        Complex zero;
+        number *= zero;
+        check(hasParts(number, 0.0, 0.0), "Умножение на ноль дает ноль", errors);
+        number /= other;
+        check(hasParts(number, 0.0, 0.0), "Ноль делится на ненулевое число", errors);
+        check(rejectsArithmetic(number, zero, 3, true),
+              "Деление нуля на ноль отклонено", errors);
+        number = other;
+        check(rejectsArithmetic(number, zero, 3, true),
+              "Деление ненулевого числа на ноль отклонено", errors);
+        check(rejectsArithmetic(zero, zero, 3, true),
+              "Деление нулевого числа на себя не меняет данные", errors);
+
+        Complex imaginary(0.0, 2.0);
+        imaginary *= imaginary;
+        check(hasParts(imaginary, -4.0, 0.0), "Квадрат мнимого числа действительный", errors);
+        number = other;
+        (number += other) -= other;
+        check(hasParts(number, 1.0, -2.0), "Присваивания можно объединять в выражение", errors);
+
+        double maximum = std::numeric_limits<double>::max();
+        Complex large(maximum, 0.0);
+        Complex negativeLarge(-maximum, 0.0);
+        Complex twice(2.0, 0.0);
+        Complex tiny(std::numeric_limits<double>::denorm_min(), 0.0);
+        check(rejectsArithmetic(large, large, 0), "Переполнение += не изменило число", errors);
+        check(rejectsArithmetic(large, negativeLarge, 1), "Переполнение -= не изменило число", errors);
+        check(rejectsArithmetic(large, twice, 2), "Переполнение *= не изменило число", errors);
+        check(rejectsArithmetic(large, tiny, 3), "Переполнение /= не изменило число", errors);
+
+        Complex diagonal(maximum * 0.6, 0.0);
+        const Complex vertical(0.0, maximum * 0.9);
+        check(rejectsArithmetic(diagonal, vertical, 0),
+              "Переполнение модуля отклонено, даже если части конечные", errors);
+
+        large /= large;
+        check(hasParts(large, 1.0, 0.0), "Большое число делится само на себя без переполнения квадратов", errors);
+        tiny /= tiny;
+        check(hasParts(tiny, 1.0, 0.0), "Очень маленькое число делится само на себя", errors);
+    }
+
+    check(Complex::getObjectCount() == initialCount,
+          "После арифметических проверок счетчик восстановлен", errors);
+}
+
+/**
+ * @brief Проверяет конструкторы, операции и время жизни чисел
  *
  * @return 0 если все проверки прошли, иначе 1
  */
@@ -243,6 +386,7 @@ int main()
     }
 
     testUnaryOperations(errors);
+    testArithmeticAssignment(errors);
     check(Complex::getObjectCount() == 0, "Деструкторы уменьшили счетчик до 0", errors);
     std::cout << "\nКоличество ошибок: " << errors << '\n';
     std::cout << (errors == 0 ? "Все проверки выполнены\n" : "Есть ошибки проверки\n");

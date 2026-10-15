@@ -19,6 +19,15 @@ private:
      */
     void changeRealPart(double change);
 
+    /**
+     * @brief Проверяет и сохраняет результат арифметической операции
+     *
+     * @param newRealPart Новая действительная часть
+     * @param newImaginaryPart Новая мнимая часть
+     * @throws std::overflow_error Если части или модуль не помещаются в double
+     */
+    void assignResult(long double newRealPart, long double newImaginaryPart);
+
 public:
     /**
      * @brief Создает комплексное число с нулевыми частями
@@ -87,6 +96,43 @@ public:
      * @throws std::overflow_error Если результат нельзя сохранить
      */
     Complex operator--(int unused);
+
+    /**
+     * @brief Прибавляет другое комплексное число
+     *
+     * @param other Прибавляемое число
+     * @return Ссылка на измененное число
+     * @throws std::overflow_error Если результат нельзя сохранить
+     */
+    Complex& operator+=(const Complex& other);
+
+    /**
+     * @brief Вычитает другое комплексное число
+     *
+     * @param other Вычитаемое число
+     * @return Ссылка на измененное число
+     * @throws std::overflow_error Если результат нельзя сохранить
+     */
+    Complex& operator-=(const Complex& other);
+
+    /**
+     * @brief Умножает число на другое комплексное число
+     *
+     * @param other Второй множитель
+     * @return Ссылка на измененное число
+     * @throws std::overflow_error Если результат нельзя сохранить
+     */
+    Complex& operator*=(const Complex& other);
+
+    /**
+     * @brief Делит число на другое комплексное число
+     *
+     * @param other Делитель
+     * @return Ссылка на измененное число
+     * @throws std::domain_error При делении на нулевое число
+     * @throws std::overflow_error Если результат нельзя сохранить
+     */
+    Complex& operator/=(const Complex& other);
 
     /**
      * @brief Возвращает действительную часть
