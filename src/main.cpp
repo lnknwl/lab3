@@ -313,6 +313,177 @@ void testArithmeticAssignment(int& errors)
 }
 
 /**
+ * @brief Проверяет ошибку бинарной операции и сохранение операндов
+ *
+ * @param first Первый операнд
+ * @param second Второй операнд
+ * @param operation Номер операции: 0 — +, 1 — -, 2 — *, 3 — /
+ * @param divisionByZero Ожидается ли ошибка деления на ноль
+ * @return true если получена нужная ошибка и исходные числа сохранены
+ */
+bool rejectsBinary(const Complex& first, const Complex& second,
+                   int operation, bool divisionByZero = false)
+{
+    double firstReal = first.getRealPart();
+    double firstImaginary = first.getImaginaryPart();
+    double secondReal = second.getRealPart();
+    double secondImaginary = second.getImaginaryPart();
+    int count = Complex::getObjectCount();
+    bool rejected = false;
+
+    try
+    {
+        switch (operation)
+        {
+            case 0: (void)(first + second); break;
+            case 1: (void)(first - second); break;
+            case 2: (void)(first * second); break;
+            case 3: (void)(first / second); break;
+            default: return false;
+        }
+    }
+    catch (const std::domain_error&)
+    {
+        rejected = divisionByZero;
+    }
+    catch (const std::overflow_error&)
+    {
+        rejected = !divisionByZero;
+    }
+
+    return rejected && first.getRealPart() == firstReal &&
+           first.getImaginaryPart() == firstImaginary &&
+           second.getRealPart() == secondReal && second.getImaginaryPart() == secondImaginary &&
+           Complex::getObjectCount() == count;
+}
+
+/**
+ * @brief Проверяет бинарную арифметику
+ *
+ * @param errors Количество ошибок
+ */
+void testBinaryArithmetic(int& errors)
+{
+    std::cout << "\nБинарная арифметика:\n";
+    int initialCount = Complex::getObjectCount();
+
+    {
+        const Complex first(3.0, 4.0);
+        const Complex second(1.0, -2.0);
+        int count = Complex::getObjectCount();
+        {
+            Complex sum = first + second;
+            Complex difference = first - second;
+            Complex product = first * second;
+            Complex quotient = first / second;
+
+            check(hasParts(sum, 4.0, 2.0), "Сумма равна 4 + 2i", errors);
+            check(hasParts(difference, 2.0, 6.0), "Разность равна 2 + 6i", errors);
+            check(hasParts(product, 11.0, -2.0), "Произведение равно 11 - 2i", errors);
+            check(hasParts(quotient, -1.0, 2.0), "Частное равно -1 + 2i", errors);
+            check(hasParts(first, 3.0, 4.0) && hasParts(second, 1.0, -2.0),
+                  "Все бинарные операции сохранили исходные операнды", errors);
+            check(Complex::getObjectCount() == count + 4,
+                  "Четыре сохраненных результата являются отдельными объектами", errors);
+
+            ++sum;
+            check(hasParts(sum, 5.0, 2.0) && hasParts(first, 3.0, 4.0) &&
+                  hasParts(second, 1.0, -2.0), "Изменение результата не изменило операнды", errors);
+            std::cout << "Произведение: ";
+            product.printInfo();
+            std::cout << "Частное: ";
+            quotient.printInfo();
+        }
+
+        check(Complex::getObjectCount() == count, "Сохраненные результаты уничтожены", errors);
+        check(hasParts(first + first, 6.0, 8.0), "Сложение числа с самим собой", errors);
+        check(hasParts(first - first, 0.0, 0.0), "Разность числа и самого себя", errors);
+        check(hasParts(first * first, -7.0, 24.0), "Квадрат комплексного числа", errors);
+        check(hasParts(first / first, 1.0, 0.0), "Деление ненулевого числа на себя", errors);
+        check(hasParts((first + second) - second, 3.0, 4.0),
+              "Вычитание второго слагаемого восстанавливает первое", errors);
+        check(hasParts((first * second) / second, 3.0, 4.0),
+              "Деление произведения восстанавливает первый множитель", errors);
+        check(Complex::getObjectCount() == count, "Результаты составных выражений уничтожены", errors);
+
+        const Complex zero;
+        check(hasParts(first + zero, 3.0, 4.0) && hasParts(zero - first, -3.0, -4.0),
+              "Сложение и вычитание с нулем", errors);
+        check(hasParts(first * zero, 0.0, 0.0) && hasParts(zero / first, 0.0, 0.0),
+              "Умножение на ноль и деление нуля", errors);
+        check(rejectsBinary(first, zero, 3, true), "Бинарное деление на ноль отклонено", errors);
+        check(rejectsBinary(zero, zero, 3, true), "Бинарное деление нуля на ноль отклонено", errors);
+
+        double maximum = std::numeric_limits<double>::max();
+        const Complex large(maximum, 0.0);
+        const Complex negativeLarge(-maximum, 0.0);
+        const Complex twice(2.0, 0.0);
+        const Complex tiny(std::numeric_limits<double>::denorm_min(), 0.0);
+        check(rejectsBinary(large, large, 0), "Переполнение суммы не изменило операнды и счетчик", errors);
+        check(rejectsBinary(large, negativeLarge, 1), "Переполнение разности не изменило операнды и счетчик", errors);
+        check(rejectsBinary(large, twice, 2), "Переполнение произведения не изменило операнды и счетчик", errors);
+        check(rejectsBinary(large, tiny, 3), "Переполнение частного не изменило операнды и счетчик", errors);
+        check(hasParts(large / large, 1.0, 0.0) && hasParts(tiny / tiny, 1.0, 0.0),
+              "Бинарное деление работает на границах диапазона", errors);
+    }
+
+    check(Complex::getObjectCount() == initialCount,
+          "После бинарной арифметики счетчик восстановлен", errors);
+}
+
+/**
+ * @brief Проверяет сравнения модулей и равенство частей
+ *
+ * @param errors Количество ошибок
+ */
+void testComparison(int& errors)
+{
+    std::cout << "\nСравнения:\n";
+    int initialCount = Complex::getObjectCount();
+
+    {
+        const Complex small(1.0, 0.0);
+        const Complex large(3.0, 4.0);
+        const Complex equal(3.0, 4.0);
+        const Complex sameModulus(-3.0, 4.0);
+        const Complex differentImaginary(3.0, -4.0);
+        const Complex zero;
+        int count = Complex::getObjectCount();
+
+        check(small < large && !(large < small), "Оператор < сравнивает модули", errors);
+        check(large > small && !(small > large), "Оператор > сравнивает модули", errors);
+        check(small <= large && large <= equal && !(large <= small),
+              "Оператор <= учитывает меньший и равный модули", errors);
+        check(large >= small && large >= equal && !(small >= large),
+              "Оператор >= учитывает больший и равный модули", errors);
+        check(large == equal && !(large == small), "Оператор == сравнивает обе части", errors);
+        check(large != small && !(large != equal), "Оператор != противоположен равенству", errors);
+        check(large != sameModulus && large != differentImaginary,
+              "Различие любой части означает неравенство", errors);
+        check(!(large < sameModulus) && !(large > sameModulus) &&
+              large <= sameModulus && large >= sameModulus,
+              "Разные числа могут иметь одинаковый модуль", errors);
+        check(large == large && !(large != large) && !(large < large) &&
+              !(large > large) && large <= large && large >= large,
+              "Все шесть сравнений числа с самим собой", errors);
+        check(zero < small && zero <= zero && zero >= zero && zero == zero,
+              "Сравнения с нулевым числом", errors);
+
+        const Complex negative(-2.0, 0.0);
+        check(negative > small, "Знак действительной части не определяет порядок модулей", errors);
+        const Complex huge(std::numeric_limits<double>::max(), 0.0);
+        const Complex tiny(std::numeric_limits<double>::denorm_min(), 0.0);
+        check(huge > large && tiny > zero && tiny < small,
+              "Сравнение очень больших и маленьких модулей", errors);
+        check(Complex::getObjectCount() == count + 3 && hasParts(large, 3.0, 4.0) &&
+              hasParts(sameModulus, -3.0, 4.0),
+              "Сравнения не меняют числа и не создают копий", errors);
+    }
+
+    check(Complex::getObjectCount() == initialCount, "После сравнений счетчик восстановлен", errors);
+}
+
+/**
  * @brief Проверяет конструкторы, операции и время жизни чисел
  *
  * @return 0 если все проверки прошли, иначе 1
@@ -387,6 +558,8 @@ int main()
 
     testUnaryOperations(errors);
     testArithmeticAssignment(errors);
+    testBinaryArithmetic(errors);
+    testComparison(errors);
     check(Complex::getObjectCount() == 0, "Деструкторы уменьшили счетчик до 0", errors);
     std::cout << "\nКоличество ошибок: " << errors << '\n';
     std::cout << (errors == 0 ? "Все проверки выполнены\n" : "Есть ошибки проверки\n");

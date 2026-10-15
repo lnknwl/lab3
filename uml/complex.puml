@@ -21,6 +21,16 @@ class Complex {
     + operator-=(other : const Complex&) : Complex&
     + operator*=(other : const Complex&) : Complex&
     + operator/=(other : const Complex&) : Complex&
+    + operator+(other : const Complex&) const : Complex
+    + operator-(other : const Complex&) const : Complex
+    + operator*(other : const Complex&) const : Complex
+    + operator/(other : const Complex&) const : Complex
+    + operator<(other : const Complex&) const : bool
+    + operator>(other : const Complex&) const : bool
+    + operator<=(other : const Complex&) const : bool
+    + operator>=(other : const Complex&) const : bool
+    + operator==(other : const Complex&) const : bool
+    + operator!=(other : const Complex&) const : bool
     + getRealPart() const : double
     + getImaginaryPart() const : double
     + getModulus() const : double

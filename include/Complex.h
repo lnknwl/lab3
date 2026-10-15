@@ -135,6 +135,91 @@ public:
     Complex& operator/=(const Complex& other);
 
     /**
+     * @brief Возвращает сумму двух комплексных чисел
+     *
+     * @param other Второе слагаемое
+     * @return Новое число с результатом сложения
+     * @throws std::overflow_error Если результат нельзя сохранить
+     */
+    Complex operator+(const Complex& other) const;
+
+    /**
+     * @brief Возвращает разность двух комплексных чисел
+     *
+     * @param other Вычитаемое число
+     * @return Новое число с результатом вычитания
+     * @throws std::overflow_error Если результат нельзя сохранить
+     */
+    Complex operator-(const Complex& other) const;
+
+    /**
+     * @brief Возвращает произведение двух комплексных чисел
+     *
+     * @param other Второй множитель
+     * @return Новое число с результатом умножения
+     * @throws std::overflow_error Если результат нельзя сохранить
+     */
+    Complex operator*(const Complex& other) const;
+
+    /**
+     * @brief Возвращает частное двух комплексных чисел
+     *
+     * @param other Делитель
+     * @return Новое число с результатом деления
+     * @throws std::domain_error При делении на нулевое число
+     * @throws std::overflow_error Если результат нельзя сохранить
+     */
+    Complex operator/(const Complex& other) const;
+
+    /**
+     * @brief Сравнивает модули: меньше ли модуль текущего числа
+     *
+     * @param other Число для сравнения
+     * @return true если модуль текущего числа меньше
+     */
+    bool operator<(const Complex& other) const;
+
+    /**
+     * @brief Сравнивает модули: больше ли модуль текущего числа
+     *
+     * @param other Число для сравнения
+     * @return true если модуль текущего числа больше
+     */
+    bool operator>(const Complex& other) const;
+
+    /**
+     * @brief Проверяет, что модуль текущего числа не больше другого
+     *
+     * @param other Число для сравнения
+     * @return true если модуль меньше или равен
+     */
+    bool operator<=(const Complex& other) const;
+
+    /**
+     * @brief Проверяет, что модуль текущего числа не меньше другого
+     *
+     * @param other Число для сравнения
+     * @return true если модуль больше или равен
+     */
+    bool operator>=(const Complex& other) const;
+
+    /**
+     * @brief Сравнивает обе части комплексных чисел
+     *
+     * @param other Число для сравнения
+     * @return true если действительные и мнимые части равны
+     */
+    bool operator==(const Complex& other) const;
+
+    /**
+     * @brief Проверяет неравенство комплексных чисел
+     *
+     * @param other Число для сравнения
+     * @return true если хотя бы одна часть отличается
+     */
+    bool operator!=(const Complex& other) const;
+
+    /**
      * @brief Возвращает действительную часть
      *
      * @return Действительная часть числа

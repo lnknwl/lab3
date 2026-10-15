@@ -184,6 +184,94 @@ Complex& Complex::operator/=(const Complex& other)
 }
 
 /**
+ * @brief Возвращает сумму двух комплексных чисел
+ */
+Complex Complex::operator+(const Complex& other) const
+{
+    Complex result(*this);
+    result += other;
+    return result;
+}
+
+/**
+ * @brief Возвращает разность двух комплексных чисел
+ */
+Complex Complex::operator-(const Complex& other) const
+{
+    Complex result(*this);
+    result -= other;
+    return result;
+}
+
+/**
+ * @brief Возвращает произведение двух комплексных чисел
+ */
+Complex Complex::operator*(const Complex& other) const
+{
+    Complex result(*this);
+    result *= other;
+    return result;
+}
+
+/**
+ * @brief Возвращает частное двух комплексных чисел
+ */
+Complex Complex::operator/(const Complex& other) const
+{
+    Complex result(*this);
+    result /= other;
+    return result;
+}
+
+/**
+ * @brief Сравнивает модули: меньше ли модуль текущего числа
+ */
+bool Complex::operator<(const Complex& other) const
+{
+    return getModulus() < other.getModulus();
+}
+
+/**
+ * @brief Сравнивает модули: больше ли модуль текущего числа
+ */
+bool Complex::operator>(const Complex& other) const
+{
+    return other < *this;
+}
+
+/**
+ * @brief Проверяет, что модуль текущего числа не больше другого
+ */
+bool Complex::operator<=(const Complex& other) const
+{
+    return !(*this > other);
+}
+
+/**
+ * @brief Проверяет, что модуль текущего числа не меньше другого
+ */
+bool Complex::operator>=(const Complex& other) const
+{
+    return !(*this < other);
+}
+
+/**
+ * @brief Сравнивает обе части комплексных чисел
+ */
+bool Complex::operator==(const Complex& other) const
+{
+    return realPart == other.realPart && imaginaryPart == other.imaginaryPart;
+}
+
+/**
+ * @brief Проверяет неравенство комплексных чисел
+ */
+bool Complex::operator!=(const Complex& other) const
+{
+    return !(*this == other);
+}
+
+/**
  * @brief Возвращает действительную часть
  *
  * @return Действительная часть числа
