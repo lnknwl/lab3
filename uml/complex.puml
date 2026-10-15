@@ -38,4 +38,14 @@ class Complex {
     + printInfo() const : void
 }
 
+class Calculator {
+    - current : Complex
+    - history : std::vector<std::string>
+    + enterNumber(number : const Complex&) : void
+    + getCurrent() const : const Complex&
+    + getHistory() const : const std::vector<std::string>&
+    + calculate(operation : const std::string&, other : const Complex&) : std::string
+}
+
+Calculator "1" *-- "1" Complex : текущее число
 @enduml

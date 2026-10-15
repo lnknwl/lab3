@@ -3,8 +3,10 @@
 #include <limits>
 #include <stdexcept>
 #include <string>
+#include <sstream>
 #include <windows.h>
 #include "Complex.h"
+#include "Calculator.h"
 
 /**
  * @brief Выводит результат проверки
@@ -484,11 +486,120 @@ void testComparison(int& errors)
 }
 
 /**
+ * @brief Проверяет калькулятор, историю и ввод пользователя
+ *
+ * @param errors Количество ошибок
+ */
+void testCalculator(int& errors)
+{
+    std::cout << "\nКалькулятор и история:\n";
+    int count = Complex::getObjectCount();
+    {
+        Calculator calculator;
+        const Complex initial(3.0, 4.0);
+        const Complex other(1.0, -2.0);
+        const Complex zero;
+        check(hasParts(calculator.getCurrent(), 0.0, 0.0) && calculator.getHistory().empty(),
+              "Калькулятор начинает с нуля и пустой истории", errors);
+        const std::string operations[] = {
+            "+", "-", "*", "/", "+=", "-=", "*=", "/=",
+            "++a", "a++", "--a", "a--", "<", ">", "<=", ">=", "==", "!="
+        };
+        const double realResults[] = {4, 2, 11, -1, 4, 2, 11, -1, 4, 4, 2, 2, 3, 3, 3, 3, 3, 3};
+        const double imaginaryResults[] = {2, 6, -2, 2, 2, 6, -2, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4};
+
+        for (int i = 0; i < 18; ++i)
+        {
+            calculator.enterNumber(initial);
+            std::string entry = calculator.calculate(operations[i], other);
+            check(hasParts(calculator.getCurrent(), realResults[i], imaginaryResults[i]) &&
+                  calculator.getHistory().size() == static_cast<std::size_t>(i + 1) &&
+                  calculator.getHistory().back() == entry,
+                  "Калькулятор выполнил " + operations[i] + " и добавил запись", errors);
+        }
+
+        check(calculator.getHistory()[9].find("= 3 + 4i; текущее число: 4 + 4i") != std::string::npos &&
+              calculator.getHistory()[11].find("= 3 + 4i; текущее число: 2 + 4i") != std::string::npos,
+              "История постфикса содержит старый результат и новое число", errors);
+        const std::string expectedComparisons[] = {"false", "true", "false", "true", "false", "true"};
+        for (int i = 0; i < 6; ++i)
+        {
+            const std::string& entry = calculator.getHistory()[12 + i];
+            check(entry.substr(entry.find(" = ") + 3) == expectedComparisons[i],
+                  "История содержит правильный результат сравнения " + operations[12 + i], errors);
+        }
+
+        std::vector<std::string> savedHistory = calculator.getHistory();
+        try
+        {
+            calculator.calculate("/", zero);
+            check(false, "Деление на ноль отклонено в калькуляторе", errors);
+        }
+        catch (const std::domain_error&)
+        {
+            check(calculator.getHistory() == savedHistory && hasParts(calculator.getCurrent(), 3.0, 4.0),
+                  "При делении на ноль история и текущее число сохранены", errors);
+        }
+        try
+        {
+            calculator.calculate("unknown", other);
+            check(false, "Неизвестная операция отклонена", errors);
+        }
+        catch (const std::invalid_argument&)
+        {
+            check(calculator.getHistory() == savedHistory && hasParts(calculator.getCurrent(), 3.0, 4.0),
+                  "Неизвестная операция не изменила калькулятор", errors);
+        }
+        calculator.enterNumber(Complex(std::numeric_limits<double>::max(), 0.0));
+        try
+        {
+            calculator.calculate("*", Complex(2.0, 0.0));
+            check(false, "Переполнение отклонено в калькуляторе", errors);
+        }
+        catch (const std::overflow_error&)
+        {
+            check(calculator.getHistory() == savedHistory &&
+                  calculator.getCurrent().getRealPart() == std::numeric_limits<double>::max(),
+                  "При переполнении история и текущее число сохранены", errors);
+        }
+        check(hasParts(initial, 3.0, 4.0) && hasParts(other, 1.0, -2.0),
+              "Калькулятор не изменил переданные ему числа", errors);
+    }
+
+    {
+        std::istringstream input("3\n1\nwrong\n1 2 extra\n3 4\n2\n+\n1 -2\n2\na++\n2\n/\n0 0\n2\n???\n9\n3\n0\n");
+        std::ostringstream output;
+        runCalculator(input, output);
+        std::string text = output.str();
+        check(text.find("История пуста") != std::string::npos, "Меню показывает пустую историю", errors);
+        check(text.find("Ошибка ввода: нужны два конечных числа") != std::string::npos &&
+              text.find("Ошибка ввода: лишние данные") != std::string::npos,
+              "После неправильного ввода можно ввести число заново", errors);
+        check(text.find("1. (3 + 4i) + (1 - 2i) = 4 + 2i") != std::string::npos &&
+              text.find("2. (4 + 2i) a++ = 4 + 2i; текущее число: 5 + 2i") != std::string::npos,
+              "Меню выводит историю в порядке выполнения", errors);
+        check(text.find("Ошибка: Деление на нулевое комплексное число") != std::string::npos &&
+              text.find("Текущее число: 5 + 2i") != std::string::npos,
+              "После ошибки деления меню продолжает работу", errors);
+        check(text.find("Ошибка: неизвестная операция") != std::string::npos &&
+              text.find("Ошибка: неизвестный пункт меню") != std::string::npos,
+              "Меню обрабатывает неизвестные команды", errors);
+    }
+    {
+        std::istringstream input("1\n");
+        std::ostringstream output;
+        runCalculator(input, output);
+        check(input.eof(), "Конец ввода во время чтения числа завершает калькулятор", errors);
+    }
+    check(Complex::getObjectCount() == count, "После калькулятора не осталось объектов", errors);
+}
+
+/**
  * @brief Проверяет конструкторы, операции и время жизни чисел
  *
  * @return 0 если все проверки прошли, иначе 1
  */
-int main()
+int runTests()
 {
     SetConsoleCP(1251);
     SetConsoleOutputCP(1251);
@@ -560,8 +671,32 @@ int main()
     testArithmeticAssignment(errors);
     testBinaryArithmetic(errors);
     testComparison(errors);
+    testCalculator(errors);
     check(Complex::getObjectCount() == 0, "Деструкторы уменьшили счетчик до 0", errors);
     std::cout << "\nКоличество ошибок: " << errors << '\n';
     std::cout << (errors == 0 ? "Все проверки выполнены\n" : "Есть ошибки проверки\n");
     return errors == 0 ? 0 : 1;
+}
+
+/**
+ * @brief Запускает калькулятор или автоматические проверки
+ *
+ * @param argc Количество аргументов
+ * @param argv Аргументы командной строки
+ * @return 0 при успешном выполнении, иначе 1
+ */
+int main(int argc, char* argv[])
+{
+    SetConsoleCP(1251);
+    SetConsoleOutputCP(1251);
+
+    if (argc == 2 && std::string(argv[1]) == "--test") return runTests();
+    if (argc != 1)
+    {
+        std::cout << "Запуск калькулятора: lab3.exe\nПроверки: lab3.exe --test\n";
+        return 1;
+    }
+
+    runCalculator(std::cin, std::cout);
+    return Complex::getObjectCount() == 0 ? 0 : 1;
 }
