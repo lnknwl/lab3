@@ -9,7 +9,7 @@
 #include "Calculator.h"
 
 /**
- * @brief Выводит результат проверки
+ * @brief Сообщает об ошибке, если условие не выполнено
  *
  * @param condition Результат проверяемого условия
  * @param message Название проверки
@@ -17,10 +17,9 @@
  */
 void check(bool condition, const std::string& message, int& errors)
 {
-    std::cout << (condition ? "[OK] " : "[Ошибка] ") << message << '\n';
-
     if (!condition)
     {
+        std::cout << "Ошибка: " << message << '\n';
         ++errors;
     }
 }
@@ -673,8 +672,14 @@ int runTests()
     testComparison(errors);
     testCalculator(errors);
     check(Complex::getObjectCount() == 0, "Деструкторы уменьшили счетчик до 0", errors);
-    std::cout << "\nКоличество ошибок: " << errors << '\n';
-    std::cout << (errors == 0 ? "Все проверки выполнены\n" : "Есть ошибки проверки\n");
+    if (errors == 0)
+    {
+        std::cout << "Все проверки выполнены\n";
+    }
+    else
+    {
+        std::cout << "Количество ошибок: " << errors << '\n';
+    }
     return errors == 0 ? 0 : 1;
 }
 
